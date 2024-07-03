@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/multiprecision/cpp_int.hpp>
+#include "modular_inverse.h"
 
 using namespace boost::multiprecision;
 using std::string;
@@ -64,9 +65,22 @@ public:
             return identity_point;
         }
 
-        // TODO implement point addition -- need modular inverse via euclidean algorithm first
+        cpp_int slope;
 
-        return *this; // TODO remove this once cases are complete
+        if (x == other.x and y == other.y){
+            // if the points are the same, we want the slope of the tanget line
+            slope = (3 * x*x + curve.a) * modularInverse(2 * y, curve.p);
+        }else{
+            slope = (other.y - y) * modularInverse(other.x - x, curve.p);
+        }
+
+        cpp_int xr = (slope*slope - x - other.x) % curve.p;
+        cpp_int yr = (-(slope*(xr - x) + y)) % curve.p;
+        
+        string xr_str = xr.str(16); // convert to hex to init new point
+        string yr_str = yr.str(16);
+
+        return Point(xr_str, yr_str, curve);
     }
 };
 
@@ -99,6 +113,13 @@ int main() {
 
     Point point3 = point2 + point1addpoint2;
     assert(point3.x == point2.x && point3.y == point2.y); // add point to identity point gives itself
+
+    Point bitcoin_2G = bitcoin_G + bitcoin_G;
+    string g_string = bitcoin_G.x.str(0, std::ios_base::hex);
+    string g2_string = bitcoin_2G.x.str(0, std::ios_base::hex);
+    std::cout << "G.x: " << g_string << std::endl;
+    std::cout << "2G.x: " << g2_string << std::endl;
+    assert(bitcoin_2G.isOnCurve());
 
     std::cout << "All tests passed!" << std::endl;
 
